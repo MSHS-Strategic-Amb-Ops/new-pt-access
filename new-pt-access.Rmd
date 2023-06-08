@@ -333,7 +333,7 @@ knitr::include_graphics("Mount_Sinai_Logo_H.png")
 *Data Source: Epic Scheduling Data*<br/>
 ________________________________________________________________________________________________________________________________________________
 <br/>
-
+<br/>
 
 <span style='font-size: 22px; color: #212070'>**% New Visits Scheduled <=14 Days by Site**</span><br/>
 ```{r New Percent Trending by Site, echo = FALSE, warning = FALSE, message = FALSE}
@@ -391,6 +391,7 @@ highchart() %>%
 
 invisible(gc())
 ```
+________________________________________________________________________________________________________________________________________________
 <br/>
 <br/>
 <br/>
