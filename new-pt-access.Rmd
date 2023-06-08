@@ -383,8 +383,8 @@ highchart() %>%
                 dataLabels = list(enabled = TRUE, format='{point.y}%')) %>%
   hc_legend(align = "left", verticalAlign = "top", itemStyle = list(fontFamily ='Calibri',color ='black', fontSize = "14px")) %>%
   hc_title(text = paste0(x, " - % New Patients Scheduled <=14 Days"), align = "left", style = list(fontWeight = 'bold', fontSize = "22px", fontFamily = "Calibri")) %>%
-  # hc_subtitle(text = paste0("Based on visits from 2023-01-01"," to ",date_end),
-  #             align = "left", style = list(fontFace = "italic", fontSize = "16px", fontFamily = "Calibri")) %>%
+  hc_subtitle(text = paste0("Based on scheduled visits from 2022-06-01"," to ",date_end),
+              align = "left", style = list(fontFace = "italic", fontSize = "16px", fontFamily = "Calibri")) %>%
   hc_tooltip(shared = TRUE, borderColor = "black")
 }) %>%
   hw_grid(ncol = 2, rowheight = 400) %>% htmltools::browsable()
