@@ -501,7 +501,7 @@ highchart() %>%
               align = "left", style = list(fontFace = "italic", fontSize = "16px", fontFamily = "Calibri")) %>%
   hc_tooltip(shared = TRUE, borderColor = "black")
 }) %>%
-  hw_grid(ncol = 2, rowheight = 500) %>% htmltools::browsable()
+  hw_grid(ncol = 2, rowheight = 400) %>% htmltools::browsable()
 
 ```
 
