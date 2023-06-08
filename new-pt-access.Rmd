@@ -426,7 +426,9 @@ new_perc_trend_specialty_summary <- new_perc_trend_specialty %>%
   ungroup() %>%
   dplyr::select(Campus.Specialty, Campus, Appt.Made.MonthYear, total_specialty, new_14days) %>%
   pivot_wider(names_from = Campus,
-              values_from = new_14days) 
+              values_from = new_14days)  %>%
+  filter(total>5) %>%
+  arrange(Campus.Specialty, Campus)
   
 
 
