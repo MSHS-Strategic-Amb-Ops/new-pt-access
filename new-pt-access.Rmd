@@ -1,0 +1,506 @@
+---
+output:
+  html_document:
+    toc: yes
+    toc_depth: 6
+    toc_float:
+      collapsed: yes
+    fig_width: 7
+    fig_height: 6
+resource_files:
+- hh_crosswalk.csv
+- Rad_Onc_Data.csv
+- Radiology_Data.csv
+- Radiology_Site_Mapping.csv
+- Epic Department Mapping Correction.csv
+- hh_crosswalk.csv
+- Radiology_Data.csv
+- Rad_Onc_Data.csv
+- Radiology_Site_Mapping.csv
+- Epic Department Mapping Correction.csv
+- open_encounters_exclusion.xlsx
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+<style type="text/css">
+div.main-container {
+  max-width: 2000px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+<style>
+.tocify {
+color: black;
+}
+<!-- } -->
+<!-- .tocify .tocify-header { -->
+<!--     position: fixed; -->
+<!--     <!-- top: 50px; --> -->
+<!--     left: 50px; -->
+<!--     width: 350px; -->
+<!--     <!-- border: solid 3px black; --> -->
+<!--     <!-- height: 200px; --> -->
+<!--  border: none; -->
+<!-- } -->
+.tocify .tocify-header .active {
+color: white;
+background: #d80b8c;
+font-weight: bold;
+}
+<!-- .tocify .tocify-item { -->
+<!-- background: white; -->
+<!-- color: black; -->
+<!--  border: none; -->
+<!-- } -->
+</style>
+<style>
+  .nav-pills>li>a:hover, .nav-pills>li>a:focus, .nav-pills>li.active>a,     .nav-pills>li.active>a:hover, .nav-pills>li.active>a:focus{
+     background-color: #212070;
+     }
+</style>
+<style>
+.container { width: 1800px; }
+h2 {
+  background-color: #dddedd;
+  color: black;
+  text-indent: 20px;
+  <!-- font-weight: bold; -->
+}
+h3 {
+  background-color: #f2f2f2;
+  color: black;
+  text-indent: 20px;
+  <!-- font-weight: bold; -->
+}
+h4 {
+  background-color: #f2f2f2;
+  color: black;
+  text-indent: 20px;
+  <!-- font-weight: bold; -->
+}
+</style>
+```{r Load Packages, echo = FALSE, warning = FALSE, message = FALSE}
+# Load packages -----------------------------------------------------------------------------------
+suppressMessages({
+  memory.limit(size = 10000000)
+  library(readxl)
+  library(writexl)
+  library(plyr)
+  library(dplyr)
+  library(data.table)
+  library(zoo)
+  library(shiny)
+  library(shinydashboard)
+  library(shinydashboardPlus)
+  library(shinyWidgets)
+  library(htmlwidgets)
+  library(lubridate)
+  library(tcltk)
+  library(tidyverse)
+  library(plotly)
+  library(knitr)
+  library(kableExtra)
+  library(leaflet)
+  library(grid)
+  library(gridExtra)
+  library(eeptools)
+  library(ggQC)
+  #library(zipcode)
+  library(utils)
+  library(scales)
+  library(chron)
+  library(bupaR)
+  library(shiny)
+  library(DT)
+  library(DiagrammeR)
+  library(shinyalert)
+  library(edeaR)
+  library(processmapR)
+  library(processmonitR)
+  library(processanimateR)
+  library(tidyr)
+  library(lubridate)
+  library(RColorBrewer)
+  library(DiagrammeR)
+  library(ggplot2)
+  library(leaflet)
+  library(readr)
+  library(highcharter)
+  library(ggforce) # for 'geom_arc_bar'
+  library(packcircles) # for packed circle graph
+  library(viridis)
+  library(ggiraph)
+  library(treemapify)
+  library(treemap)
+  library(broom)
+  library(extrafont)
+  library(tis) # for US holidays
+  library(vroom)
+  library(sjmisc)
+  library(tools)
+  library(here)
+  library(shinyBS)
+  library(shinyscreenshot)
+  library(fasttime)
+  library(shinycssloaders)
+  library(feather)
+  # library(zipcodeR)
+  library(formattable)
+  library(shinyjs)
+  library(janitor)
+  library(patchwork)
+  library(RODBC)
+  library(DBI)
+  library(odbc)
+})
+```
+
+
+```{r Graph asthetics, echo = FALSE, warning = FALSE, message = FALSE}
+### Color Functions for Graphs ============================================================
+# Mount Sinai corporate colors "USE THIS TO ADD COLORS"
+MountSinai_colors <- c(
+  `dark purple`  = "#212070",
+  `dark pink`    = "#d80b8c",
+  `dark blue`    = "#00aeef",
+  `dark grey`    = "#7f7f7f",
+  `yellow`       = "#ffc000",
+  `purple`       = "#7030a0",
+  `med purple`   = "#5753d0",
+  `med pink`     = "#f75dbe",
+  `med blue`     = "#5cd3ff",
+  `med grey`     = "#a5a7a5",
+  `light purple` = "#c7c6ef",
+  `light pink`   = "#fcc9e9",
+  `light blue`   = "#c9f0ff",
+  `light grey`   = "#dddedd"
+  )
+# Function to extract Mount Sinai colors as hex codes
+# Use Character names of MountSinai_colors
+MountSinai_cols <- function(...) {
+  cols <- c(...)
+  
+  if (is.null(cols))
+    return (MountSinai_colors)
+  
+  MountSinai_colors[cols]
+}
+# Color Function that can be used to call all colors is "MountSinai_cols()"
+# Use in ggplot 
+  #MountSinai_cols()       # will provide all colors and their hex codes in a table 
+  #MountSinai_cols("pink") # will provide color name and the hex code for the pink color
+# Create palettes 
+MountSinai_palettes <- list(
+  `all`   = MountSinai_cols("dark purple","dark pink","dark blue","dark grey",
+                            "med purple","med pink","med blue","med grey", 
+                            "light purple","light pink","light blue","light grey"),
+  
+  `main`  = MountSinai_cols("dark purple","dark pink","dark blue","dark grey"),
+  
+  `purple`  = MountSinai_cols("dark purple","med purple","light purple"),
+  
+  `pink`  = MountSinai_cols("dark pink","med pink","light pink"),
+  
+  `blue`  = MountSinai_cols("dark blue", "med blue", "light blue"),
+  
+  `grey`  = MountSinai_cols("dark grey", "med grey", "light grey"),
+  
+  `purpleGrey` = MountSinai_cols("dark purple", "dark grey"),
+  
+  `pinkBlue` = MountSinai_cols("dark pink", "dark blue")
+  
+)
+# MountSinai_palettes
+# Return function to interpolate a Mount Sinai color palette
+# default value is the main palette, reverse = True will change the order
+MountSinai_pal <- function(palette = "all", reverse = FALSE, ...) {
+  pal <- MountSinai_palettes[[palette]]
+  
+  if (reverse) pal <- rev(pal)
+  
+  colorRampPalette(pal, ...)
+}
+# Scale Function for ggplot can be used instead of scale_color_manual
+scale_color_MountSinai <- function(palette = "all", discrete = TRUE, reverse = FALSE, ...) {
+  pal <- MountSinai_pal(palette = palette, reverse = reverse)
+  
+  if (discrete) {
+    discrete_scale("colour", paste0("MountSinai_", palette), palette = pal, ...)
+  } else {
+    scale_color_gradientn(colours = pal(256), ...)
+  }
+}
+# Scale Fill for ggplot insetead of scale_fill_manual 
+scale_fill_MountSinai <- function(palette = "all", discrete = TRUE, reverse = FALSE, ...) {
+  pal <- MountSinai_pal(palette = palette, reverse = reverse)
+  if (discrete) {
+    discrete_scale("fill", paste0("MountSinai_", palette), palette = pal, ...)
+  } else {
+    scale_fill_gradientn(colours = pal(256), ...)
+  }
+}
+# Use in ggplot 
+  # scale_color_MountSinai("main")
+```
+
+
+```{r Import Data, echo = FALSE, warning = FALSE, message = FALSE}
+'%!in%' <- function(x,y)!('%in%'(x,y))
+inc_sites <- c("NETWORK","MSM","MSH-MSDFP","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG")
+
+
+scheduling_data_raw <- as.data.frame(readRDS("/nfs/data/Applications/Ambulatory/Data_Updated/historical_data.rds")) %>%
+   mutate(Campus = ifelse(Campus == "MSDD", "MSDMG", Campus)) %>%
+  filter(!is.na(Campus)) %>%
+  filter(Campus %in% c("NETWORK","MSM","MSH-MSDFP","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG"))
+
+# scheduling_data_raw <- as.data.frame(readRDS(file.choose())) %>%
+#   mutate(Campus = ifelse(Campus == "MSDD", "MSDMG", Campus)) %>%
+#   filter(!is.na(Campus)) %>%
+#   filter(Campus %in% c("NETWORK","MSM","MSH-MSDFP","ONCOLOGY","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG"))
+
+date_start <- as.Date("2022-01-01", format="%Y-%m-%d")
+date_end <- as.Date(max(scheduling_data_raw$Appt.Made.DTTM), format="%Y-%m-%d")
+
+todays_year <- format(date_end, "%Y")
+# date_start <- as.Date(paste0(format(as.Date(date_end) - 365, "%Y-%m"),"-01"), format="%Y-%m-%d")
+```
+
+
+```{r Set Variables, echo = FALSE, warning = FALSE, message = FALSE}
+# Set up crosswalk for Week Number and Week Starting Date (Monday)
+weekNum_sunday <- scheduling_data_raw %>%
+  filter(Appt.DateYear >= date_start, Appt.DateYear <= date_end) %>%
+  filter(Appt.Day == "Sun") %>%
+  mutate(Appt.WeekNum = lubridate::epiweek(Appt.DateYear)) %>%
+  dplyr::select(Appt.Year, Appt.WeekNum, Appt.Day, Appt.DateYear) %>%
+  distinct() %>%
+  arrange(Appt.DateYear)
+
+# Set Variables
+report_run_date <- Sys.Date()
+todays_date <- (tail(weekNum_sunday,1))$Appt.DateYear
+todays_year <- strftime(todays_date, format = "%Y")
+todays_week <- (tail(weekNum_sunday,1))$Appt.DateYear
+past_4_wks <- tail(weekNum_sunday, 4)
+past_5_wks <- tail(weekNum_sunday, 5)
+past_year <- weekNum_sunday %>%
+  filter(Appt.WeekNum %in% unique(past_5_wks$Appt.WeekNum))
+reporting_week <- paste0("from Sunday, ",todays_date, " to Saturday, ",todays_date+6)
+```
+
+
+```{r Data Processing, echo = FALSE, warning = FALSE, message = FALSE}
+# Scheduling Data
+scheduling_data <- scheduling_data_raw %>%
+  filter(!Campus %in% c("MSB", "MS NOW", "MSHP", "NYEE", "MSQ","OTHER","INPATIENT")) %>%
+  filter(!is.na(Campus))
+  
+rm(scheduling_data_raw)
+invisible(gc())
+
+scheduling_data <- scheduling_data %>%
+  mutate(Appt.WeekNum = lubridate::epiweek(Appt.DateYear),
+         Visit.Method  = case_when(Visit.Method == "IN PERSON" ~ 'IN PERSON',TRUE ~ 'TELEHEALTH'),
+         New.PT2 = case_when(New.PT2 == "New" ~ 'New', TRUE ~ 'Established'),
+         # New.PT3 = case_when(New.PT3 == "TRUE" ~ 'New',TRUE ~ 'Established'),
+         enc.status = case_when(ENC_CLOSED_CHARGE_STATUS %in% c("OPEN", "CLOSED BUT COSIGN NEEDED") ~ 'OPEN',TRUE ~ 'CLOSED'),
+         open.hours = ifelse(enc.status == "OPEN",
+                             as.numeric(round(difftime(max(date_end)+1, Appt.DTTM, units = "hours"))),
+                             as.numeric(round(difftime(Y_ENC_CLOSE_TIME, Appt.DTTM, units = "hours")))),
+         open.days = round(open.hours/24)) %>%
+   mutate(Appt.Made.DateYear = as.Date(Appt.Made.DTTM, format="%Y-%m-%d"),
+          Appt.Made.MonthYear = format(as.Date(Appt.Made.DTTM, format="%m/%d/%Y"), "%Y-%m"),
+          Appt.Made.Year = format(as.Date(Appt.Made.DTTM, format="%m/%d/%Y"), "%Y"),
+          Appt.Made.WeekNum = as.numeric(strftime(Appt.Made.DTTM, format = "%V")))
+
+# Missing Charges (Update when mater data is re-processed)
+business_days <- seq(date_start, date_end, by="days")[!is.weekend(seq(date_start, date_end, by="days"))]
+missing_chg_cutOff <- business_days[length(business_days)-3] # Should this be 2 or 3?
+```
+
+
+
+```{r Sinai Logo, echo=FALSE, out.width = '30%'}
+knitr::include_graphics("Mount_Sinai_Logo_H.png")
+```
+
+
+# New Patient Access
+*Report run date: `r report_run_date`*<br/>
+*Data Source: Epic Scheduling Data*<br/>
+________________________________________________________________________________________________________________________________________________
+<br/>
+
+
+<span style='font-size: 22px; color: #212070'>**% New Visits Scheduled <=14 Days by Site**</span><br/>
+```{r New Percent Trending by Site, echo = FALSE, warning = FALSE, message = FALSE}
+
+# New Patients Scheduled within 14 days --------------------------------------------------------------------
+new_perc_trend <- scheduling_data %>%
+  # filter(Appt.Made.Year == 2023) %>%
+  filter(Appt.Made.DateYear >= as.Date("2022-06-01") & Appt.Made.DateYear <= date_end) %>%
+  # filter(Appt.Made.DateYear >= date_start, Appt.Made.DateYear <= date_end) %>%
+  filter(New.PT2 == "New") %>%
+  # mutate(Appt.Made.MonthYear = as.Date(paste0(format(as.Date(Appt.Made.DTTM, format="%m/%d/%Y"), "%Y-%m"), "-01"))) %>%
+  filter(Wait.Time >= 0) %>%
+  mutate(Wait.Time = as.numeric(Wait.Time)) %>%
+  mutate(within.14 = ifelse(Wait.Time <= 14, "Yes","No")) %>%
+  group_by(Campus, Appt.Made.MonthYear, within.14) %>%
+  summarise(count = n()) %>%
+  pivot_wider(names_from = within.14,
+              values_from = count,
+              values_fill = 0) %>%
+  mutate(total = Yes + No,
+         new_14days = round((Yes/(total))*100))
+
+
+map(unique(new_perc_trend$Campus), function(x){
+highchart() %>%
+  hc_yAxis_multiples(
+    list(title = list(text = "Total New Patients"), lineWidth = 3),
+    list(title = list(text = "% of New Patients"), labels = list(format = '{value}%'),
+         showLastLabel = FALSE, opposite = TRUE)
+  ) %>%
+  hc_xAxis(title = list(text = ""),
+           categories = (new_perc_trend %>% filter(Campus == x))$Appt.Made.MonthYear,
+           type = "datetime",
+           labels = list(format = '{value:%m/%d}')
+           # dateTimeLabelFormats = list(month = '%Y-%m')
+           ) %>%
+  hc_add_series(name = "Total New Patients Scheduled",
+                data = (new_perc_trend %>% filter(Campus == x))$total,
+                type = 'column',
+                color='#a5a7a5',
+                dataLabels = list(enabled = TRUE, format='{point.y}')) %>%
+  hc_add_series(name = "% New Patients Scheduled <=14 Days",
+                data = (new_perc_trend %>% filter(Campus == x))$new_14days,
+                type = "line", yAxis = 1,
+                color='#d80b8c',
+                lineColor='#d80b8c',
+                dataLabels = list(enabled = TRUE, format='{point.y}%')) %>%
+  hc_legend(align = "left", verticalAlign = "top", itemStyle = list(fontFamily ='Calibri',color ='black', fontSize = "14px")) %>%
+  hc_title(text = paste0(x, " - % New Patients Scheduled <=14 Days"), align = "left", style = list(fontWeight = 'bold', fontSize = "22px", fontFamily = "Calibri")) %>%
+  # hc_subtitle(text = paste0("Based on visits from 2023-01-01"," to ",date_end),
+  #             align = "left", style = list(fontFace = "italic", fontSize = "16px", fontFamily = "Calibri")) %>%
+  hc_tooltip(shared = TRUE, borderColor = "black")
+}) %>%
+  hw_grid(ncol = 2, rowheight = 400) %>% htmltools::browsable()
+
+invisible(gc())
+```
+<br/>
+<br/>
+<br/>
+
+<span style='font-size: 22px; color: #212070'>**% New Visits Scheduled <=14 Days by Specialty**</span><br/>
+```{r Specialty New Percent Trending by Site, echo = FALSE, warning = FALSE, message = FALSE}
+
+# New Patients Scheduled within 14 days --------------------------------------------------------------------
+new_perc_trend_specialty <- scheduling_data %>%
+  filter(Appt.Made.DateYear >= as.Date("2022-06-01") & Appt.Made.DateYear <= date_end) %>%
+  filter(New.PT2 == "New") %>%
+  filter(Wait.Time >= 0) %>%
+  mutate(Wait.Time = as.numeric(Wait.Time)) %>%
+  mutate(within.14 = ifelse(Wait.Time <= 14, "Yes","No")) %>%
+  group_by(Campus, Campus.Specialty, Appt.Made.MonthYear, within.14) %>%
+  summarise(count = n()) %>%
+  pivot_wider(names_from = within.14,
+              values_from = count,
+              values_fill = 0) %>%
+  mutate(total = Yes + No,
+         new_14days = round((Yes/(total))*100)) 
+
+new_perc_trend_specialty <- new_perc_trend_specialty %>%
+  group_by(Campus.Specialty) %>%
+  mutate(total_specialty = sum(total))
+
+
+new_perc_trend_specialty_summary <- new_perc_trend_specialty %>%
+  group_by(Campus.Specialty, Appt.Made.MonthYear) %>%
+  mutate(total_specialty = sum(total)) %>%
+  ungroup() %>%
+  dplyr::select(Campus.Specialty, Campus, Appt.Made.MonthYear, total_specialty, new_14days) %>%
+  pivot_wider(names_from = Campus,
+              values_from = new_14days) 
+  
+
+
+map(unique(new_perc_trend_specialty_summary$Campus.Specialty), function(x){
+highchart() %>%
+  hc_yAxis_multiples(
+    list(title = list(text = "Total New Patients"), lineWidth = 3),
+    list(title = list(text = "% of New Patients"), labels = list(format = '{value}%'),
+         showLastLabel = FALSE, opposite = TRUE)
+  ) %>%
+  hc_xAxis(title = list(text = ""),
+           categories = sort((new_perc_trend_specialty_summary %>% filter(Campus.Specialty == x))$Appt.Made.MonthYear),
+           type = "datetime",
+           labels = list(format = '{value:%m/%d}')
+           # dateTimeLabelFormats = list(month = '%Y-%m')
+           ) %>%
+  hc_add_series(name = "Specialty Total New Patients Scheduled",
+                data = (new_perc_trend_specialty_summary %>% filter(Campus.Specialty == x))$total_specialty,
+                type = 'column',
+                color='#dddedd',
+                dataLabels = list(enabled = TRUE, format='{point.y}')) %>%
+  hc_add_series(name = "MSBI",
+                data = (new_perc_trend_specialty_summary %>% filter(Campus.Specialty == x))$MSBI,
+                type = "line", yAxis = 1,
+                color='#d80b8c',
+                lineColor='#d80b8c',
+                dataLabels = list(enabled = TRUE, format='{point.y}%')) %>%
+  hc_add_series(name = "MSDMG",
+                data = (new_perc_trend_specialty_summary %>% filter(Campus.Specialty == x))$MSDMG,
+                type = "line", yAxis = 1,
+                color='#212070',
+                lineColor='#212070',
+                dataLabels = list(enabled = TRUE, format='{point.y}%')) %>%
+  hc_add_series(name = "MSH- AMB CARE",
+                data = (new_perc_trend_specialty_summary %>% filter(Campus.Specialty == x))$`MSH- AMBULATORY CARE`,
+                type = "line", yAxis = 1,
+                color='#00aeef',
+                lineColor='#00aeef',
+                dataLabels = list(enabled = TRUE, format='{point.y}%')) %>%
+  hc_add_series(name = "MSDFP",
+                data = (new_perc_trend_specialty_summary %>% filter(Campus.Specialty == x))$`MSH-MSDFP`,
+                type = "line", yAxis = 1,
+                color='#ffc000',
+                lineColor='#ffc000',
+                dataLabels = list(enabled = TRUE, format='{point.y}%')) %>%
+  hc_add_series(name = "MSM",
+                data = (new_perc_trend_specialty_summary %>% filter(Campus.Specialty == x))$MSM,
+                type = "line", yAxis = 1,
+                color='#7f7f7f',
+                lineColor='#7f7f7f',
+                dataLabels = list(enabled = TRUE, format='{point.y}%')) %>%
+  hc_add_series(name = "MSUS",
+                data = (new_perc_trend_specialty_summary %>% filter(Campus.Specialty == x))$MSUS,
+                type = "line", yAxis = 1,
+                color='#5753d0',
+                lineColor='#5753d0',
+                dataLabels = list(enabled = TRUE, format='{point.y}%')) %>%
+  hc_add_series(name = "MSW",
+                data = (new_perc_trend_specialty_summary %>% filter(Campus.Specialty == x))$MSW,
+                type = "line", yAxis = 1,
+                color='#fcc9e9',
+                lineColor='#fcc9e9',
+                dataLabels = list(enabled = TRUE, format='{point.y}%')) %>%
+  hc_add_series(name = "NETWORK",
+                data = (new_perc_trend_specialty_summary %>% filter(Campus.Specialty == x))$NETWORK,
+                type = "line", yAxis = 1,
+                color='#c7c6ef',
+                lineColor='#c7c6ef',
+                dataLabels = list(enabled = TRUE, format='{point.y}%')) %>%
+  hc_legend(align = "left", verticalAlign = "top", itemStyle = list(fontFamily ='Calibri',color ='black', fontSize = "14px")) %>%
+  hc_title(text = paste0(x, " - % New Patients Scheduled <=14 Days"), align = "left", style = list(fontWeight = 'bold', fontSize = "22px", fontFamily = "Calibri")) %>%
+  # hc_subtitle(text = paste0("Based on visits from 2023-01-01"," to ",date_end),
+  #             align = "left", style = list(fontFace = "italic", fontSize = "16px", fontFamily = "Calibri")) %>%
+  hc_tooltip(shared = TRUE, borderColor = "black")
+}) %>%
+  hw_grid(ncol = 1, rowheight = 500) %>% htmltools::browsable()
+
+```
+
