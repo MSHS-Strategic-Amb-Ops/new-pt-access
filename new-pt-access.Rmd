@@ -335,7 +335,7 @@ ________________________________________________________________________________
 <br/>
 <br/>
 
-<span style='font-size: 22px; color: #212070'>**% New Visits Scheduled <=14 Days by Site**</span><br/>
+## % New Visits Scheduled <=14 Days by Site
 ```{r New Percent Trending by Site, echo = FALSE, warning = FALSE, message = FALSE}
 
 # New Patients Scheduled within 14 days --------------------------------------------------------------------
@@ -396,7 +396,8 @@ ________________________________________________________________________________
 <br/>
 <br/>
 
-<span style='font-size: 22px; color: #212070'>**% New Visits Scheduled <=14 Days by Specialty**</span><br/>
+
+## % New Visits Scheduled <=14 Days by Specialty
 ```{r Specialty New Percent Trending by Site, echo = FALSE, warning = FALSE, message = FALSE}
 
 # New Patients Scheduled within 14 days --------------------------------------------------------------------
@@ -501,7 +502,8 @@ highchart() %>%
               align = "left", style = list(fontFace = "italic", fontSize = "16px", fontFamily = "Calibri")) %>%
   hc_tooltip(shared = TRUE, borderColor = "black")
 }) %>%
-  hw_grid(ncol = 2, rowheight = 400) %>% htmltools::browsable()
+  hw_grid(ncol = 2, rowheight = 500) %>% htmltools::browsable()
 
 ```
+
 
