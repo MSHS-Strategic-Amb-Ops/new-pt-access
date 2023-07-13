@@ -345,7 +345,7 @@ ________________________________________________________________________________
 ```{r New Percent Trending by Site, echo = FALSE, warning = FALSE, message = FALSE}
 
 # New Patients Scheduled within 14 days --------------------------------------------------------------------
-new_perc_trend <- scheduling_data %>%
+new_perc_trend <- scheduling_data_raw %>%
   # filter(Appt.Made.Year == 2023) %>%
   filter(Appt.Made.DateYear >= as.Date("2022-06-01") & Appt.Made.DateYear <= date_end) %>%
   # filter(Appt.Made.DateYear >= date_start, Appt.Made.DateYear <= date_end) %>%
