@@ -516,7 +516,7 @@ highchart() %>%
 
 
 ## Median Wait Time to New by Specialty
-```{r Specialty New Percent Trending by Site, echo = FALSE, warning = FALSE, message = FALSE}
+```{r Specialty New Wait Time Trending by Specialty, echo = FALSE, warning = FALSE, message = FALSE}
 
 # Median Wait Time to New --------------------------------------------------------------------
 waitTime_trend_specialty <- scheduling_data_raw %>%
