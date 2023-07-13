@@ -251,15 +251,15 @@ scale_fill_MountSinai <- function(palette = "all", discrete = TRUE, reverse = FA
 inc_sites <- c("NETWORK","MSM","MSH-MSDFP","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG")
 
 
-# scheduling_data_raw <- as.data.frame(readRDS("/nfs/data/Applications/Ambulatory/Data_Updated/historical_data.rds")) %>%
-#    mutate(Campus = ifelse(Campus == "MSDD", "MSDMG", Campus)) %>%
-#   filter(!is.na(Campus)) %>%
-#   filter(Campus %in% c("NETWORK","MSM","MSH-MSDFP","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG"))
-
-scheduling_data_raw <- as.data.frame(readRDS("historical_data.rds")) %>%
-  mutate(Campus = ifelse(Campus == "MSDD", "MSDMG", Campus)) %>%
+scheduling_data_raw <- as.data.frame(readRDS("/nfs/data/Applications/Ambulatory/Data_Updated/historical_data.rds")) %>%
+   mutate(Campus = ifelse(Campus == "MSDD", "MSDMG", Campus)) %>%
   filter(!is.na(Campus)) %>%
-  filter(Campus %in% c("NETWORK","MSM","MSH-MSDFP","ONCOLOGY","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG"))
+  filter(Campus %in% c("NETWORK","MSM","MSH-MSDFP","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG"))
+
+# scheduling_data_raw <- as.data.frame(readRDS("historical_data.rds")) %>%
+#   mutate(Campus = ifelse(Campus == "MSDD", "MSDMG", Campus)) %>%
+#   filter(!is.na(Campus)) %>%
+#   filter(Campus %in% c("NETWORK","MSM","MSH-MSDFP","ONCOLOGY","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG"))
 
 date_start <- as.Date("2022-01-01", format="%Y-%m-%d")
 date_end <- as.Date(max(scheduling_data_raw$Appt.Made.DTTM), format="%Y-%m-%d")
@@ -597,6 +597,7 @@ highchart() %>%
   hc_tooltip(shared = TRUE, borderColor = "black")
 }) %>%
   hw_grid(ncol = 2, rowheight = 500) %>% htmltools::browsable()
+
 
 ```
 
