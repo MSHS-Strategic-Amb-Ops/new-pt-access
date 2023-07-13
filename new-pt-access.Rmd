@@ -251,21 +251,33 @@ scale_fill_MountSinai <- function(palette = "all", discrete = TRUE, reverse = FA
 inc_sites <- c("NETWORK","MSM","MSH-MSDFP","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG")
 
 
-scheduling_data_raw <- as.data.frame(readRDS("/nfs/data/Applications/Ambulatory/Data_Updated/historical_data.rds")) %>%
-   mutate(Campus = ifelse(Campus == "MSDD", "MSDMG", Campus)) %>%
-  filter(!is.na(Campus)) %>%
-  filter(Campus %in% c("NETWORK","MSM","MSH-MSDFP","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG"))
-
-# scheduling_data_raw <- as.data.frame(readRDS(file.choose())) %>%
-#   mutate(Campus = ifelse(Campus == "MSDD", "MSDMG", Campus)) %>%
+# scheduling_data_raw <- as.data.frame(readRDS("/nfs/data/Applications/Ambulatory/Data_Updated/historical_data.rds")) %>%
+#    mutate(Campus = ifelse(Campus == "MSDD", "MSDMG", Campus)) %>%
 #   filter(!is.na(Campus)) %>%
-#   filter(Campus %in% c("NETWORK","MSM","MSH-MSDFP","ONCOLOGY","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG"))
+#   filter(Campus %in% c("NETWORK","MSM","MSH-MSDFP","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG"))
+
+scheduling_data_raw <- as.data.frame(readRDS("historical_data.rds")) %>%
+  mutate(Campus = ifelse(Campus == "MSDD", "MSDMG", Campus)) %>%
+  filter(!is.na(Campus)) %>%
+  filter(Campus %in% c("NETWORK","MSM","MSH-MSDFP","ONCOLOGY","MSW","MSBI","MSUS","MSH- AMBULATORY CARE","MSDMG"))
 
 date_start <- as.Date("2022-01-01", format="%Y-%m-%d")
 date_end <- as.Date(max(scheduling_data_raw$Appt.Made.DTTM), format="%Y-%m-%d")
 
 todays_year <- format(date_end, "%Y")
 # date_start <- as.Date(paste0(format(as.Date(date_end) - 365, "%Y-%m"),"-01"), format="%Y-%m-%d")
+```
+
+
+```{r}
+
+scheduling_data_raw <- scheduling_data_raw %>%
+  mutate(Campus.Specialty = case_when(Campus.Specialty %in% c("Internal Medicine", "Family Medicine") ~ "Primary Care",
+                                      Campus.Specialty %in% c("OB/Gyn","Gynecology","Obstetrics") ~ "OB/GYN",
+                                      Department %in% c("425 W 59TH ST GYN ONCOLOGY", "325 W 15TH ST GYN ONCOLOGY", "X_325 W 15TH ST GYN ONCOLOGY_DEACTIVATED") ~ "Gyn Onc",
+                                      TRUE ~ Campus.Specialty))
+
+
 ```
 
 
@@ -293,15 +305,8 @@ reporting_week <- paste0("from Sunday, ",todays_date, " to Saturday, ",todays_da
 
 
 ```{r Data Processing, echo = FALSE, warning = FALSE, message = FALSE}
-# Scheduling Data
-scheduling_data <- scheduling_data_raw %>%
-  filter(!Campus %in% c("MSB", "MS NOW", "MSHP", "NYEE", "MSQ","OTHER","INPATIENT")) %>%
-  filter(!is.na(Campus))
-  
-rm(scheduling_data_raw)
-invisible(gc())
 
-scheduling_data <- scheduling_data %>%
+scheduling_data_raw <- scheduling_data_raw %>%
   mutate(Appt.WeekNum = lubridate::epiweek(Appt.DateYear),
          Visit.Method  = case_when(Visit.Method == "IN PERSON" ~ 'IN PERSON',TRUE ~ 'TELEHEALTH'),
          New.PT2 = case_when(New.PT2 == "New" ~ 'New', TRUE ~ 'Established'),
@@ -330,6 +335,7 @@ knitr::include_graphics("Mount_Sinai_Logo_H.png")
 
 # New Patient Access
 *Report run date: `r report_run_date`*<br/>
+*Data date range: `r date_start` to `r date_end`*<br/>
 *Data Source: Epic Scheduling Data*<br/>
 ________________________________________________________________________________________________________________________________________________
 <br/>
@@ -401,7 +407,7 @@ ________________________________________________________________________________
 ```{r Specialty New Percent Trending by Site, echo = FALSE, warning = FALSE, message = FALSE}
 
 # New Patients Scheduled within 14 days --------------------------------------------------------------------
-new_perc_trend_specialty <- scheduling_data %>%
+new_perc_trend_specialty <- scheduling_data_raw %>%
   filter(Appt.Made.DateYear >= as.Date("2022-06-01") & Appt.Made.DateYear <= date_end) %>%
   filter(New.PT2 == "New") %>%
   filter(Wait.Time >= 0) %>%
@@ -508,4 +514,89 @@ highchart() %>%
 
 ```
 
+
+## Median Wait Time to New by Specialty
+```{r Specialty New Percent Trending by Site, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Median Wait Time to New --------------------------------------------------------------------
+waitTime_trend_specialty <- scheduling_data_raw %>%
+  filter(Appt.Made.DateYear >= as.Date("2022-06-01") & Appt.Made.DateYear <= date_end) %>%
+  filter(New.PT2 == "New") %>%
+  filter(Wait.Time >= 0) %>%
+  group_by(Campus, Campus.Specialty, Appt.Made.MonthYear) %>%
+  summarise(median_wait_time = as.numeric(median(Wait.Time, na.rm = TRUE))) 
+
+waitTime_trend_specialty <- waitTime_trend_specialty %>%
+  pivot_wider(names_from = Campus,
+              values_from = median_wait_time)
+
+
+map(unique(waitTime_trend_specialty$Campus.Specialty), function(x){
+highchart() %>%
+  hc_yAxis(
+    list(title = list(text = "Total New Patients"), labels = list(format = '{value} days'), lineWidth = 3),
+         showLastLabel = FALSE) %>%
+  hc_xAxis(title = list(text = ""),
+           categories = sort((waitTime_trend_specialty %>% filter(Campus.Specialty == x))$Appt.Made.MonthYear),
+           type = "datetime",
+           labels = list(format = '{value:%m/%d}')
+           # dateTimeLabelFormats = list(month = '%Y-%m')
+           ) %>%
+  hc_add_series(name = "MSBI",
+                data = (waitTime_trend_specialty %>% filter(Campus.Specialty == x))$MSBI,
+                type = "line", 
+                color='#d80b8c',
+                lineColor='#d80b8c',
+                dataLabels = list(enabled = TRUE, format='{point.y}')) %>%
+  hc_add_series(name = "MSDMG",
+                data = (waitTime_trend_specialty %>% filter(Campus.Specialty == x))$MSDMG,
+                type = "line",
+                color='#212070',
+                lineColor='#212070',
+                dataLabels = list(enabled = TRUE, format='{point.y}')) %>%
+  hc_add_series(name = "MSH- AMB CARE",
+                data = (waitTime_trend_specialty %>% filter(Campus.Specialty == x))$`MSH- AMBULATORY CARE`,
+                type = "line",
+                color='#00aeef',
+                lineColor='#00aeef',
+                dataLabels = list(enabled = TRUE, format='{point.y}')) %>%
+  hc_add_series(name = "MSDFP",
+                data = (waitTime_trend_specialty %>% filter(Campus.Specialty == x))$`MSH-MSDFP`,
+                type = "line",
+                color='#ffc000',
+                lineColor='#ffc000',
+                dataLabels = list(enabled = TRUE, format='{point.y}')) %>%
+  hc_add_series(name = "MSM",
+                data = (waitTime_trend_specialty %>% filter(Campus.Specialty == x))$MSM,
+                type = "line",
+                color='#7f7f7f',
+                lineColor='#7f7f7f',
+                dataLabels = list(enabled = TRUE, format='{point.y}')) %>%
+  hc_add_series(name = "MSUS",
+                data = (waitTime_trend_specialty %>% filter(Campus.Specialty == x))$MSUS,
+                type = "line",
+                color='#5753d0',
+                lineColor='#5753d0',
+                dataLabels = list(enabled = TRUE, format='{point.y}')) %>%
+  hc_add_series(name = "MSW",
+                data = (waitTime_trend_specialty %>% filter(Campus.Specialty == x))$MSW,
+                type = "line",
+                color='#fcc9e9',
+                lineColor='#fcc9e9',
+                dataLabels = list(enabled = TRUE, format='{point.y}')) %>%
+  hc_add_series(name = "NETWORK",
+                data = (waitTime_trend_specialty %>% filter(Campus.Specialty == x))$NETWORK,
+                type = "line",
+                color='#c7c6ef',
+                lineColor='#c7c6ef',
+                dataLabels = list(enabled = TRUE, format='{point.y}')) %>%
+  hc_legend(align = "left", verticalAlign = "top", itemStyle = list(fontFamily ='Calibri',color ='black', fontSize = "14px")) %>%
+  hc_title(text = paste0(x, " - Median New Wait Time (Days)"), align = "left", style = list(fontWeight = 'bold', fontSize = "22px", fontFamily = "Calibri")) %>%
+  hc_subtitle(text = paste0("Based on visits scheduled from 2022-06-01"," to ",date_end),
+              align = "left", style = list(fontFace = "italic", fontSize = "16px", fontFamily = "Calibri")) %>%
+  hc_tooltip(shared = TRUE, borderColor = "black")
+}) %>%
+  hw_grid(ncol = 2, rowheight = 500) %>% htmltools::browsable()
+
+```
 
